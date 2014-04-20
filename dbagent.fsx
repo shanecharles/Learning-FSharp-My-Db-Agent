@@ -23,14 +23,7 @@ let personServerAgent = MailboxProcessor.Start(fun inbox ->
                  | Add(p) -> (p::oldState, true, None)
                  | Filter(func) -> (oldState, true, Some((List.filter func oldState)))
                  | Delete(id) ->
-                    let rec removeId id items (acc:List<Person>) = 
-                        match items with 
-                        | [] -> List.rev acc
-                        | hd::tl ->
-                            match hd.Id = id with
-                            | true -> removeId id tl acc
-                            | _ -> removeId id tl (hd::acc)
-                    (removeId id oldState []), true, None
+                    (List.filter (fun p -> p.Id <> id) oldState), true, None
 
              c.Reply (result, msg)
              return! loop newState
