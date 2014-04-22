@@ -6,6 +6,7 @@ type DbOperation =
     | Add of Person
     | Filter of (Person -> bool)
     | Delete of int
+    | Update of Person
 
 type DbResult =
     | Results of list<Person>
@@ -24,6 +25,8 @@ let personServerAgent = MailboxProcessor.Start(fun inbox ->
                  | Filter(func) -> (oldState, true, Some((List.filter func oldState)))
                  | Delete(id) ->
                     (List.filter (fun p -> p.Id <> id) oldState), true, None
+                 | Update(p) ->
+                    (p::(List.filter (fun p1 -> p1.Id <> p.Id) oldState)), true, None
 
              c.Reply (result, msg)
              return! loop newState
@@ -38,6 +41,8 @@ let populate =
     personServerAgent.PostAndReply(fun c -> DbMessage(Add({Id=4;FirstName="Brett";LastName="Islander"}),c)) |> ignore
     personServerAgent.PostAndReply(fun c -> DbMessage(Add({Id=5;FirstName="Mary";LastName="Watson"}),c)) |> ignore
 
+let updatePerson person =
+    personServerAgent.PostAndReply(fun c -> DbMessage(Update(person), c))
 
 let deleteById id =
     personServerAgent.PostAndReply(fun c -> DbMessage(Delete(id),c))
