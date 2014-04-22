@@ -13,7 +13,7 @@ type DbResult =
     | Error of string
 
 type DbMessage = 
-    | DbMessage of DbOperation * AsyncReplyChannel<obj>
+    | DbMessage of DbOperation * AsyncReplyChannel<(bool*list<Person> option)>
 
 let personServerAgent = MailboxProcessor.Start(fun inbox ->
     let rec loop oldState =
