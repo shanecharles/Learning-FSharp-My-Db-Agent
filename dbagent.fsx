@@ -1,16 +1,20 @@
 ﻿// This is a record. Think of a Tuple with named properties.
 type Person = { Id: int; FirstName: string; LastName: string;}
 
+type DbUpdateResult =
+    | OK
+    | UpdateError of string
+
+type DbResultSet =
+    | Results of list<Person>
+    | ResultError of string
+
 // Discriminated Union. Think of an Enum with an attached Tuple
 type DbOperation = 
     | Add of Person
-    | Filter of (Person -> bool) * AsyncReplyChannel<list<Person> >
-    | Delete of int * AsyncReplyChannel<bool>
-    | Update of Person * AsyncReplyChannel<bool>
-
-type DbResult =
-    | Results of list<Person>
-    | Error of string
+    | Filter of (Person -> bool) * AsyncReplyChannel<DbResultSet>
+    | Delete of int * AsyncReplyChannel<DbUpdateResult>
+    | Update of Person * AsyncReplyChannel<DbUpdateResult>
 
 type DbMessage = 
     | DbMessage of DbOperation * AsyncReplyChannel<(bool*list<Person> option)>
@@ -24,17 +28,17 @@ let personServerAgent = MailboxProcessor.Start(fun inbox ->
                  | Add(p) -> p::oldState
                  | Filter(func, c) ->
                         
-                     c.Reply(List.filter func oldState)
+                     c.Reply( Results(List.filter func oldState))
                      oldState
                  | Delete(id, c) ->
                     (List.filter (fun p -> p.Id <> id) oldState)
                  | Update(p, c) ->
                      match oldState |> List.exists (fun e -> e.Id = p.Id) with
                      | true ->
-                         c.Reply(false)
+                         c.Reply(UpdateError("record not found"))
                          oldState
                      | _    ->
-                         c.Reply(true)
+                         c.Reply(OK)
                          p :: (oldState |> List.filter (fun p1 -> p1.Id <> p.Id))
 
              return! loop newState
