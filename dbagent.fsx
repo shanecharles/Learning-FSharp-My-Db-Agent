@@ -16,9 +16,6 @@ type DbOperation =
     | Delete of int * AsyncReplyChannel<DbUpdateResult>
     | Update of Person * AsyncReplyChannel<DbUpdateResult>
 
-type DbMessage = 
-    | DbMessage of DbOperation * AsyncReplyChannel<(bool*list<Person> option)>
-
 let personServerAgent = MailboxProcessor.Start(fun inbox ->
     let rec loop oldState =
         async {
@@ -34,10 +31,10 @@ let personServerAgent = MailboxProcessor.Start(fun inbox ->
                     (List.filter (fun p -> p.Id <> id) oldState)
                  | Update(p, c) ->
                      match oldState |> List.exists (fun e -> e.Id = p.Id) with
-                     | true ->
+                     | false ->
                          c.Reply(UpdateError("record not found"))
                          oldState
-                     | _    ->
+                     | _     ->
                          c.Reply(OK)
                          p :: (oldState |> List.filter (fun p1 -> p1.Id <> p.Id))
 
